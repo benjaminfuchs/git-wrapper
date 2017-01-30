@@ -90,8 +90,8 @@ function pre_commit {
     
     local branch_name="$("$GIT" symbolic-ref HEAD 2>/dev/null)"
     if [ -z "$branch_name" ]; then
-        echo ""$PRE" ERROR: HEAD detached"
-        echo ""$PRE" You have to checkout a branch before you can commit."
+        echo ""$PRE" ERROR: HEAD detached. You have to checkout a branch before you can commit."
+        echo ""$PRE"   (use e.g. \"git branch <branch-name>\")"
         echo ""$PRE" Disable this check by setting GIT_WRAPPER_NOPRECOMMIT to a nonempty value."
         exit 1
     fi    
