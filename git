@@ -1,7 +1,4 @@
 #!/bin/bash
-#
-# This script wraps git, so install it somewhere such as ~/bin where
-# it will be found by your shell before the actual git executable.
 
 # Prefix for echo
 PRE="[git-wrapper]"
