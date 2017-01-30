@@ -54,7 +54,7 @@ function get_command {
             return
         fi
         break
-	done
+    done
 
     for cmd in "${WRAP_CMDS[@]}"; do
         if [ "$cmd" == "$1" ]; then
