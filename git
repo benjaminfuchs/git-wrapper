@@ -2,18 +2,16 @@
 #
 # This script wraps git, so install it somewhere such as ~/bin where
 # it will be found by your shell before the actual git executable.
-# Based on:
-# https://gist.github.com/mmueller/7286919
-
-set -e
 
 # Prefix for echo
 PRE="[git-wrapper]"
+
 # General: Do not run hooks for --help
 GIT_OPTS=("-C" "-c" "--version" "--exec-path" "--html-path" "--man-path"
           "--info-path" "-p" "--paginate" "--no-pager" "--no-replace-objects"
           "--bare" "--git-dir" "--work-tree" "--namespace")
-# Command we want to wrap
+
+# Commands we want to wrap
 WRAP_CMDS=("commit" "checkout" "pull")
 IGNORE_CMDS=("add" "config" "get-tar-commit-id" "merge-ours" "remote" "show-ref"
           "add--interactive" "count-objects" "grep" "merge-recursive" "remote-ext" "stage"
@@ -89,9 +87,7 @@ function pre_commit {
         return
     fi
     
-    set +e
     local branch_name="$("$GIT" symbolic-ref HEAD 2>/dev/null)"
-    set -e
     if [ -z "$branch_name" ]; then
         echo ""$PRE" ERROR: HEAD detached"
         echo ""$PRE" You have to checkout a branch before you can commit."
@@ -171,9 +167,7 @@ function push_parent {
     parent_top="$1"
     parent_branch="$("$GIT" -C "$parent_top" symbolic-ref --short HEAD 2>/dev/null)"
     echo ""$PS4"git -C "$parent_top" push origin "$parent_branch""
-    set +e
     info="$("$GIT" -C "$parent_top" push origin "$parent_branch" 2>&1)"
-    set -e
     echo "$info"
     if [ "${info#*error}" != "$info" ]; then
         echo ""$PRE" ERROR: pushing parent failed!"
@@ -224,7 +218,13 @@ if [ "${@: -1}" == "--help" ]; then
     "$GIT" "$@"
 else
     pre_command "$@"
+
     "$GIT" "$@"
+    rc="$?"
+    if [ "$rc" != "0" ]; then
+        exit "$rc"
+    fi
+
     post_command "$@"
 fi
 
