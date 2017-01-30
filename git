@@ -142,7 +142,7 @@ function post_commit {
     local parent_branch="$("$GIT" -C "$parent_top" symbolic-ref --short HEAD 2>/dev/null)"
     echo
     echo ""$PRE" You just commited to the submodule: '"$submodule_name"'"
-	echo ""$PRE" Do you wish to update the parent repo to this commit?"
+    echo ""$PRE" Do you wish to update the parent repo to this commit?"
     echo ""$PRE" name:   "$parent_name""
     echo ""$PRE" branch: "$parent_branch""
     echo ""$PRE" (set GIT_WRAPPER_NOPOSTCOMMIT to a nonempty value to never ask again)"
@@ -157,22 +157,6 @@ function post_commit {
             * ) echo "Please answer y or n.";;
         esac
     done
-}
-
-function push_parent {
-    echo
-    echo ""$PRE" pushing parent..."
-    local parent_branch parent_top info
-    parent_top="$1"
-    parent_branch="$("$GIT" -C "$parent_top" symbolic-ref --short HEAD 2>/dev/null)"
-    echo ""$PS4"git -C "$parent_top" push origin "$parent_branch""
-    info="$("$GIT" -C "$parent_top" push origin "$parent_branch" 2>&1)"
-    echo "$info"
-    if [ "${info#*error}" != "$info" ]; then
-        echo ""$PRE" ERROR: pushing parent failed!"
-        echo ""$PRE" Try to manually push your changes."
-        exit 1
-    fi
 }
 
 function push_submodule {
@@ -201,6 +185,22 @@ function commit_parent {
     submodule_top="${3#*modules/}"
     echo ""$PS4"git -C "$parent_top" commit -m '"$commit_message"' -- "$submodule_top""
     "$GIT" -C "$parent_top" commit -m "$commit_message" -- "$submodule_top"
+}
+
+function push_parent {
+    echo
+    echo ""$PRE" pushing parent..."
+    local parent_branch parent_top info
+    parent_top="$1"
+    parent_branch="$("$GIT" -C "$parent_top" symbolic-ref --short HEAD 2>/dev/null)"
+    echo ""$PS4"git -C "$parent_top" push origin "$parent_branch""
+    info="$("$GIT" -C "$parent_top" push origin "$parent_branch" 2>&1)"
+    echo "$info"
+    if [ "${info#*error}" != "$info" ]; then
+        echo ""$PRE" ERROR: pushing parent failed!"
+        echo ""$PRE" Try to manually push your changes."
+        exit 1
+    fi
 }
 
 # Assuming this script is called 'git', find the next available 'git' command
