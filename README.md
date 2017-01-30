@@ -2,6 +2,7 @@ git-warpper
 ===========
 
 This script allows you to wrap git and implement **pre-** and **post-command** hooks.
+
 Along with the command hook infrastructure it offers right now three differnt features:
 * Forbid to commit in a detached head state.
 * Warn you if your submodules got out-dated by a pull/checkout/merge.
@@ -21,7 +22,7 @@ sub $
 ### Warning if your submodules got out-dated
 ```
 parent $ git pull origin master 
-From /home/fuchs/github/temp/../parent
+From ...
  * branch            master     -> FETCH_HEAD
 Fetching submodule sub
 Already up-to-date.
@@ -34,7 +35,7 @@ parent $
 
 ```
 parent $ git checkout master
-M	child
+M	sub
 Switched to branch 'master'
 Your branch is up-to-date with 'origin/master'.
 
