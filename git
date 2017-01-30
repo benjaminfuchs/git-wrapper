@@ -7,27 +7,30 @@
 
 set -e
 
+GIT_OPTS=("-C" "-c" "--version" "--help" "--exec-path" "--html-path" "--man-path"
+          "--info-path" "-p" "--paginate" "--no-pager" "--no-replace-objects"
+          "--bare" "--git-dir" "--work-tree" "--namespace")
 GIT_CMDS=("add" "config" "get-tar-commit-id" "merge-ours" "remote" "show-ref"
           "add--interactive" "count-objects" "grep" "merge-recursive" "remote-ext" "stage"
           "am" "credential" "hash-object" "merge-resolve" "remote-fd" "stash"
           "annotate" "credential-cache" "help" "merge-subtree" "remote-ftp" "status"
           "apply" "credential-cache--daemon" "http-backend" "merge-tree" "remote-ftps" "stripspace"
-          "archive" "credential-store"http-fetch" "mergetool" "remote-http" "submodule"
-          "bisect" "daemon"http-push" "mktag" "remote-https" "submodule--helper"
-          "bisect--helper" "describe"imap-send" "mktree" "remote-testsvn" "subtree"
-          "blame" "diff"index-pack" "mv" "repack" "symbolic-ref"
-          "branch" "diff-files"init" "name-rev" "replace" "tag"
-          "bundle" "diff-index"init-db" "notes" "request-pull" "unpack-file"
-          "cat-file" "diff-tree"instaweb" "pack-objects" "rerere" "unpack-objects"
-          "check-attr" "difftool"interpret-trailers" "pack-redundant" "reset" "update-index"
-          "check-ignore" "difftool--helper"log" "pack-refs" "rev-list" "update-ref"
-          "check-mailmap" "fast-export"ls-files" "patch-id" "rev-parse" "update-server-info"
-          "check-ref-format" "fast-import"ls-remote" "prune" "revert" "upload-archive"
-          "checkout" "fetch"ls-tree" "prune-packed" "rm" "upload-pack"
-          "checkout-index" "fetch-pack"mailinfo" "pull" "send-email" "var"
-          "cherry" "filter-branch"mailsplit" "push" "send-pack" "verify-commit"
-          "cherry-pick" "fmt-merge-msg"merge" "quiltimport" "sh-i18n--envsubst" "verify-pack"
-          "clean" "for-each-ref"merge-base" "read-tree" "shell" "verify-tag"
+          "archive" "credential-store" "http-fetch" "mergetool" "remote-http" "submodule"
+          "bisect" "daemon" "http-push" "mktag" "remote-https" "submodule--helper"
+          "bisect--helper" "describe" "imap-send" "mktree" "remote-testsvn" "subtree"
+          "blame" "diff" "index-pack" "mv" "repack" "symbolic-ref"
+          "branch" "diff-files" "init" "name-rev" "replace" "tag"
+          "bundle" "diff-index" "init-db" "notes" "request-pull" "unpack-file"
+          "cat-file" "diff-tree" "instaweb" "pack-objects" "rerere" "unpack-objects"
+          "check-attr" "difftool" "interpret-trailers" "pack-redundant" "reset" "update-index"
+          "check-ignore" "difftool--helper" "log" "pack-refs" "rev-list" "update-ref"
+          "check-mailmap" "fast-export" "ls-files" "patch-id" "rev-parse" "update-server-info"
+          "check-ref-format" "fast-import" "ls-remote" "prune" "revert" "upload-archive"
+          "checkout" "fetch" "ls-tree" "prune-packed" "rm" "upload-pack"
+          "checkout-index" "fetch-pack" "mailinfo" "pull" "send-email" "var"
+          "cherry" "filter-branch" "mailsplit" "push" "send-pack" "verify-commit"
+          "cherry-pick" "fmt-merge-msg" "merge" "quiltimport" "sh-i18n--envsubst" "verify-pack"
+          "clean" "for-each-ref" "merge-base" "read-tree" "shell" "verify-tag"
           "clone" "format-patch" "merge-file" "rebase" "shortlog" "web--browse"
           "column" "fsck" "merge-index" "receive-pack" "show" "whatchanged"
           "commit" "fsck-objects" "merge-octopus" "reflog" "show-branch" "worktree"
@@ -36,10 +39,17 @@ PRE="[git-wrapper]"
 
 # Extract the command from a git command line
 function get_command {
-    while [[ "$1" =~ ^- ]]; do
-        echo $1
+    for opt in "${GIT_OPTS[@]}"; do
+        if [ "$opt" != "${1%=*}" ]; then
+            continue
+        fi
+        # Extra shift for 2 argument options
+        if [ "-C" == "$1" ] || [ "-c" == "$1" ]; then
+            shift
+        fi
         shift
-    done
+        break
+	done
 
     for cmd in "${GIT_CMDS[@]}"; do
         if [ "$cmd" == "$1" ]; then
@@ -48,17 +58,16 @@ function get_command {
         fi
 	done
  
-    # Look up command in git alias
+    # If not found, look up command in git alias
     local alias="$("$GIT" config -l | grep "alias."$1"=")"
     if [ "$alias" != "" ]; then
         local command="${alias#*=}"
+        get_command "$command"
     fi
-    echo "$command"
 }
 
 function pre_command {
     local command="$(get_command "$@")"
-    
     # Pre-command hooks could go here
     case "$command" in
         commit) pre_commit "$@" ;;
@@ -191,7 +200,7 @@ function commit_parent {
 
 # Assuming this script is called 'git', find the next available 'git' command
 # via 'which'. Override this if you want to hard-code a different path.
-GIT="`which -a git | awk 'NR==2 {print}'`"
+GIT="$(which -a git | awk 'NR==2 {print}')"
 if [ "$GIT" = "" ]; then
     echo "git executable not found"
     exit 1
