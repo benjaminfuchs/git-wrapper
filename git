@@ -61,13 +61,13 @@ function get_command {
             echo "$1"
             return
         fi
-	done
+    done
     
     for cmd in "${IGNORE_CMDS[@]}"; do
         if [ "$cmd" == "$1" ]; then
             return
         fi
-	done
+    done
  
     # If not found, look up command in git alias
     local alias="$("$GIT" config -l | grep "alias."$1"=")"
