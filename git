@@ -7,10 +7,15 @@
 
 set -e
 
-GIT_OPTS=("-C" "-c" "--version" "--help" "--exec-path" "--html-path" "--man-path"
+# Prefix for echo
+PRE="[git-wrapper]"
+# General: Do not run hooks for --help
+GIT_OPTS=("-C" "-c" "--version" "--exec-path" "--html-path" "--man-path"
           "--info-path" "-p" "--paginate" "--no-pager" "--no-replace-objects"
           "--bare" "--git-dir" "--work-tree" "--namespace")
-GIT_CMDS=("add" "config" "get-tar-commit-id" "merge-ours" "remote" "show-ref"
+# Command we want to wrap
+WRAP_CMDS=("commit" "checkout" "pull")
+IGNORE_CMDS=("add" "config" "get-tar-commit-id" "merge-ours" "remote" "show-ref"
           "add--interactive" "count-objects" "grep" "merge-recursive" "remote-ext" "stage"
           "am" "credential" "hash-object" "merge-resolve" "remote-fd" "stash"
           "annotate" "credential-cache" "help" "merge-subtree" "remote-ftp" "status"
@@ -26,16 +31,15 @@ GIT_CMDS=("add" "config" "get-tar-commit-id" "merge-ours" "remote" "show-ref"
           "check-ignore" "difftool--helper" "log" "pack-refs" "rev-list" "update-ref"
           "check-mailmap" "fast-export" "ls-files" "patch-id" "rev-parse" "update-server-info"
           "check-ref-format" "fast-import" "ls-remote" "prune" "revert" "upload-archive"
-          "checkout" "fetch" "ls-tree" "prune-packed" "rm" "upload-pack"
-          "checkout-index" "fetch-pack" "mailinfo" "pull" "send-email" "var"
+          "fetch" "ls-tree" "prune-packed" "rm" "upload-pack"
+          "checkout-index" "fetch-pack" "mailinfo" "send-email" "var"
           "cherry" "filter-branch" "mailsplit" "push" "send-pack" "verify-commit"
           "cherry-pick" "fmt-merge-msg" "merge" "quiltimport" "sh-i18n--envsubst" "verify-pack"
           "clean" "for-each-ref" "merge-base" "read-tree" "shell" "verify-tag"
           "clone" "format-patch" "merge-file" "rebase" "shortlog" "web--browse"
           "column" "fsck" "merge-index" "receive-pack" "show" "whatchanged"
-          "commit" "fsck-objects" "merge-octopus" "reflog" "show-branch" "worktree"
+          "fsck-objects" "merge-octopus" "reflog" "show-branch" "worktree"
           "commit-tree" "gc" "merge-one-file" "relink" "show-index" "write-tree")
-PRE="[git-wrapper]"
 
 # Extract the command from a git command line
 function get_command {
@@ -51,10 +55,16 @@ function get_command {
         break
 	done
 
-    for cmd in "${GIT_CMDS[@]}"; do
+    for cmd in "${WRAP_CMDS[@]}"; do
         if [ "$cmd" == "$1" ]; then
             echo "$1"
             return
+        fi
+	done
+    
+    for cmd in "${IGNORE_CMDS[@]}"; do
+        if [ "$cmd" == "$1" ]; then
+            exit 0
         fi
 	done
  
@@ -68,14 +78,14 @@ function get_command {
 
 function pre_command {
     local command="$(get_command "$@")"
-    # Pre-command hooks could go here
+
     case "$command" in
         commit) pre_commit "$@" ;;
     esac
 }
 
 function pre_commit {
-    if [ -n "${GIT_WRAPPER_ALLOWDETACHED}" ]; then
+    if [ -n "${GIT_WRAPPER_NOPRECOMMIT}" ]; then
         return
     fi
     
@@ -83,37 +93,41 @@ function pre_commit {
     local branch_name="$("$GIT" symbolic-ref HEAD 2>/dev/null)"
     set -e
     if [ -z "$branch_name" ]; then
-        echo ""$PRE" WARNING: HEAD detached"
+        echo ""$PRE" ERROR: HEAD detached"
         echo ""$PRE" You have to checkout a branch before you can commit."
-        echo ""$PRE" Disable this check by setting GIT_WRAPPER_ALLOWDETACHED to a nonempty value."
-        exit
+        echo ""$PRE" Disable this check by setting GIT_WRAPPER_NOPRECOMMIT to a nonempty value."
+        exit 1
     fi    
 }
 
 function post_command {
     command="$(get_command "$@")"
 
-    # Post-command hooks
     case $command in
-        commit) post_commit "$@";;
-        pull) post_checkout "$@";;
-        merge) post_checkout "$@";;
-        checkout) post_checkout "$@";;
+        commit)     post_commit "$@";;
+        pull)       post_checkout "$@";;
+        merge)      post_checkout "$@";;
+        checkout)   post_checkout "$@";;
     esac
 }
 
 function post_checkout {
+    if [ -n "${GIT_WRAPPER_NOPOSTCHECKOUT}" ]; then
+        return
+    fi
+    
     local diff="$("$GIT" diff --submodule)"
     if [ "$diff" != "" ]; then
         echo
         echo ""$PRE" WARNING: One or more submodules do not match the SHA-1 found in the index"
         echo ""$PRE"   (use \"git submodule update\" to checkout the submodules)"
+        echo ""$PRE" Disable this check by setting GIT_WRAPPER_NOPOSTCHECKOUT to a nonempty value."
         return
     fi
 }
 
 function post_commit {
-    if [ -n "${GIT_WRAPPER_NOPARENTCOMMIT}" ]; then
+    if [ -n "${GIT_WRAPPER_NOPOSTCOMMIT}" ]; then
         return
     fi
 	
@@ -136,14 +150,12 @@ function post_commit {
 	echo ""$PRE" Do you wish to update the parent repo to this commit?"
     echo ""$PRE" name:   "$parent_name""
     echo ""$PRE" branch: "$parent_branch""
-    echo ""$PRE" (set GIT_WRAPPER_NOPARENTCOMMIT to a nonempty value to never ask again)"
+    echo ""$PRE" (set GIT_WRAPPER_NOPOSTCOMMIT to a nonempty value to never ask again)"
     while true; do
         read -p ""$PRE" This will require to push your changes first. [y/n] " yn
         case $yn in
-            y ) local submodule_top="${git_dir#*modules/}"
-                local commit_message="["$submodule_name"] "$("$GIT" log --pretty=format:'%s' | head -n1)""
-                push_submodule
-                commit_parent "$parent_top" "$commit_message" "$submodule_top"
+            y ) push_submodule
+                commit_parent "$parent_top" "$submodule_name" "$git_dir"
                 push_parent "$parent_top"
                 break;;
             n ) return;;
@@ -192,8 +204,8 @@ function commit_parent {
     echo ""$PRE" commiting parent..."
     local parent_top commit_message submodule_top
     parent_top="$1"
-    commit_message="$2"
-    submodule_top="$3"
+    commit_message="["$2"] "$("$GIT" log --pretty=format:'%s' | head -n1)""
+    submodule_top="${3#*modules/}"
     echo ""$PS4"git -C "$parent_top" commit -m '"$commit_message"' -- "$submodule_top""
     "$GIT" -C "$parent_top" commit -m "$commit_message" -- "$submodule_top"
 }
