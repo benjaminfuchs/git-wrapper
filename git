@@ -6,8 +6,7 @@
 # Prefix for echo
 PRE="[git-wrapper]"
 
-# General: Do not run hooks for --help
-GIT_OPTS=("-C" "-c" "--version" "--exec-path" "--html-path" "--man-path"
+GIT_OPTS=("-C" "-c" "--help" "--version" "--exec-path" "--html-path" "--man-path"
           "--info-path" "-p" "--paginate" "--no-pager" "--no-replace-objects"
           "--bare" "--git-dir" "--work-tree" "--namespace")
 
@@ -50,6 +49,10 @@ function get_command {
             shift
         fi
         shift
+
+        if [ "$1" == "" ]; then
+            return
+        fi
         break
 	done
 
@@ -62,7 +65,7 @@ function get_command {
     
     for cmd in "${IGNORE_CMDS[@]}"; do
         if [ "$cmd" == "$1" ]; then
-            exit 0
+            return
         fi
 	done
  
@@ -172,7 +175,7 @@ function push_parent {
     if [ "${info#*error}" != "$info" ]; then
         echo ""$PRE" ERROR: pushing parent failed!"
         echo ""$PRE" Try to manually push your changes."
-        exit
+        exit 1
     fi
 }
 
@@ -189,7 +192,7 @@ function push_submodule {
     if [ "${info#*error}" != "$info" ]; then
         echo ""$PRE" ERROR: pushing submodule failed!"
         echo ""$PRE" Try to manually push your changes."
-        exit
+        exit 1
     fi
 }
 
@@ -213,18 +216,12 @@ if [ "$GIT" = "" ]; then
 fi
 #GIT=/usr/bin/git
 
-# General: Do not run hooks for --help
-if [ "${@: -1}" == "--help" ]; then
-    "$GIT" "$@"
-else
-    pre_command "$@"
+pre_command "$@"
 
-    "$GIT" "$@"
-    rc="$?"
-    if [ "$rc" != "0" ]; then
-        exit "$rc"
-    fi
-
-    post_command "$@"
+"$GIT" "$@"
+rc="$?"
+if [ "$rc" != "0" ]; then
+    exit "$rc"
 fi
 
+post_command "$@"
