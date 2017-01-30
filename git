@@ -217,6 +217,7 @@ if [ "$GIT" = "" ]; then
     echo "git executable not found"
     exit 1
 fi
+#GIT=/usr/bin/git
 
 # General: Do not run hooks for --help
 if [ "${@: -1}" == "--help" ]; then
