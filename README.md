@@ -1,12 +1,14 @@
 git-warpper
 ===========
 
-This script allows you to wrap git and implement **pre-** and **post-command** hooks.
+This script allows you to wrap git and implement **pre-** and **post-command** hooks. Put this script in your **PATH** variable before your acutal git executable.
 
 Along with the command hook infrastructure it offers right now three differnt features:
 * Forbid to commit in a detached head state.
 * Warn you if your submodules got out-dated by a pull/checkout/merge.
 * Pass through a submodule commit to the parent repository.
+
+See the following example outputs to see what the features actual do.
 
 
 ### Error when commit in a detached head state
