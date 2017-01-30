@@ -78,9 +78,7 @@ function get_command {
 }
 
 function pre_command {
-    local command="$(get_command "$@")"
-
-    case "$command" in
+    case "$COMMAND" in
         commit) pre_commit "$@" ;;
     esac
 }
@@ -100,9 +98,7 @@ function pre_commit {
 }
 
 function post_command {
-    command="$(get_command "$@")"
-
-    case $command in
+    case $COMMAND in
         commit)     post_commit "$@";;
         pull)       post_checkout "$@";;
         merge)      post_checkout "$@";;
@@ -215,6 +211,9 @@ if [ "$GIT" = "" ]; then
     exit 1
 fi
 #GIT=/usr/bin/git
+
+# TODO Remove this global variable
+COMMAND="$(get_command "$@")"
 
 pre_command "$@"
 
