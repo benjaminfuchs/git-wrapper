@@ -1,4 +1,4 @@
-git-warpper
+git-wrapper
 ===========
 
 This script allows you to wrap git and implement **pre-** and **post-command** hooks. Put this script in your **PATH** variable before your acutal git executable.
