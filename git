@@ -108,7 +108,7 @@ function post_checkout {
         return
     fi
     
-    local diff="$("$GIT" diff --submodule)"
+    local diff="$("$GIT" submodule status | grep ^\+)"
     if [ "$diff" != "" ]; then
         echo
         echo ""$PRE" WARNING: One or more submodules do not match the SHA-1 found in the index"
@@ -178,7 +178,7 @@ function commit_parent {
     echo ""$PRE" commiting parent..."
     local parent_top commit_message submodule_top
     parent_top="$1"
-    commit_message="["$2"] "$("$GIT" log --pretty=format:'%s' | head -n1)""
+    commit_message="@"$2" "$("$GIT" log --pretty=format:'%s' | head -n1)""
     submodule_top="${3#*modules/}"
     echo ""$PS4"git -C "$parent_top" commit -m '"$commit_message"' -- "$submodule_top""
     "$GIT" -C "$parent_top" commit -m "$commit_message" -- "$submodule_top"
