@@ -1,5 +1,6 @@
 git-wrapper
 ===========
+Initially based on the gist of mmueller: https://gist.github.com/mmueller/7286919
 
 This script allows you to wrap git and implement **pre-** and **post-command** hooks. Put this script in your **PATH** variable before your acutal git executable.
 
